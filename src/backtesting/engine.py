@@ -22,6 +22,7 @@ from src.tools.api import (
     get_financial_metrics,
     get_insider_trades,
 )
+from src.tools.a_stock_data import is_a_stock_ticker
 
 
 class BacktestEngine:
@@ -44,6 +45,7 @@ class BacktestEngine:
         model_provider: str,
         selected_analysts: list[str] | None,
         initial_margin_requirement: float,
+        benchmark_ticker: str | None = None,
     ) -> None:
         self._agent = agent
         self._tickers = tickers
@@ -53,6 +55,7 @@ class BacktestEngine:
         self._model_name = model_name
         self._model_provider = model_provider
         self._selected_analysts = selected_analysts
+        self._benchmark_ticker = benchmark_ticker or self._default_benchmark_ticker(tickers)
 
         self._portfolio = Portfolio(
             tickers=tickers,
@@ -78,6 +81,12 @@ class BacktestEngine:
             "net_exposure": None,
         }
 
+    @staticmethod
+    def _default_benchmark_ticker(tickers: list[str]) -> str:
+        if tickers and all(is_a_stock_ticker(ticker) for ticker in tickers):
+            return "510300"
+        return "SPY"
+
     def _prefetch_data(self) -> None:
         end_date_dt = datetime.strptime(self._end_date, "%Y-%m-%d")
         start_date_dt = end_date_dt - relativedelta(years=1)
@@ -89,8 +98,7 @@ class BacktestEngine:
             get_insider_trades(ticker, self._end_date, start_date=self._start_date, limit=1000)
             get_company_news(ticker, self._end_date, start_date=self._start_date, limit=1000)
         
-        # Preload data for SPY for benchmark comparison
-        get_prices("SPY", self._start_date, self._end_date)
+        get_prices(self._benchmark_ticker, self._start_date, self._end_date)
 
 
     def run_backtest(self) -> PerformanceMetrics:
@@ -173,7 +181,7 @@ class BacktestEngine:
                 portfolio=self._portfolio,
                 performance_metrics=self._performance_metrics,
                 total_value=total_value,
-                benchmark_return_pct=self._benchmark.get_return_pct("SPY", self._start_date, current_date_str),
+                benchmark_return_pct=self._benchmark.get_return_pct(self._benchmark_ticker, self._start_date, current_date_str),
             )
             # Prepend today's rows to historical rows so latest day is on top
             self._table_rows = rows + self._table_rows

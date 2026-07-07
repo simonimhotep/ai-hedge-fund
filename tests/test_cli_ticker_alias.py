@@ -15,6 +15,10 @@ def _add_argument_calls(path: str):
     ]
 
 
+def _source(path: str) -> str:
+    return (ROOT / path).read_text()
+
+
 def _string_args(call: ast.Call) -> set[str]:
     return {arg.value for arg in call.args if isinstance(arg, ast.Constant) and isinstance(arg.value, str)}
 
@@ -46,3 +50,32 @@ def test_backtesting_cli_accepts_documented_ticker_alias() -> None:
 
     assert ticker_calls
     assert _keyword_value(ticker_calls[0], "dest") == "tickers"
+
+
+def test_shared_cli_accepts_benchmark_ticker() -> None:
+    benchmark_calls = [
+        call
+        for call in _add_argument_calls("src/cli/input.py")
+        if "--benchmark-ticker" in _string_args(call)
+    ]
+
+    assert benchmark_calls
+    assert _keyword_value(benchmark_calls[0], "dest") == "benchmark_ticker"
+
+
+def test_backtesting_cli_accepts_benchmark_ticker() -> None:
+    benchmark_calls = [
+        call
+        for call in _add_argument_calls("src/backtesting/cli.py")
+        if "--benchmark-ticker" in _string_args(call)
+    ]
+
+    assert benchmark_calls
+
+
+def test_backtesting_engine_defaults_to_china_benchmark_for_china_runs() -> None:
+    source = _source("src/backtesting/engine.py")
+
+    assert '"510300"' in source
+    assert '"SPY"' in source
+    assert "all(is_a_stock_ticker(ticker) for ticker in tickers)" in source

@@ -32,6 +32,12 @@ def main() -> int:
     )
     parser.add_argument("--initial-capital", type=float, default=100000)
     parser.add_argument("--margin-requirement", type=float, default=0.0)
+    parser.add_argument(
+        "--benchmark-ticker",
+        type=str,
+        default=None,
+        help="Benchmark ticker. Defaults to 510300 for all A-share/China ETF runs, otherwise SPY.",
+    )
     parser.add_argument("--analysts", type=str, required=False)
     parser.add_argument("--analysts-all", action="store_true")
     parser.add_argument("--ollama", action="store_true")
@@ -138,6 +144,7 @@ def main() -> int:
         model_provider=model_provider,
         selected_analysts=selected_analysts,
         initial_margin_requirement=args.margin_requirement,
+        benchmark_ticker=args.benchmark_ticker,
     )
 
     metrics = engine.run_backtest()

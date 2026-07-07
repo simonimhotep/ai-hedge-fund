@@ -21,6 +21,15 @@ from src.data.models import (
     InsiderTradeResponse,
     CompanyFactsResponse,
 )
+from src.tools.a_stock_data import (
+    get_a_stock_company_news,
+    get_a_stock_financial_metrics,
+    get_a_stock_insider_trades,
+    get_a_stock_line_items,
+    get_a_stock_market_cap,
+    get_a_stock_prices,
+    is_a_stock_ticker,
+)
 
 # Global cache instance
 _cache = get_cache()
@@ -69,6 +78,12 @@ def get_prices(ticker: str, start_date: str, end_date: str, api_key: str = None)
     if cached_data := _cache.get_prices(cache_key):
         return [Price(**price) for price in cached_data]
 
+    if is_a_stock_ticker(ticker):
+        prices = get_a_stock_prices(ticker, start_date, end_date)
+        if prices:
+            _cache.set_prices(cache_key, [p.model_dump() for p in prices])
+        return prices
+
     # If not in cache, fetch from API
     headers = {}
     financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
@@ -111,6 +126,12 @@ def get_financial_metrics(
     if cached_data := _cache.get_financial_metrics(cache_key):
         return [FinancialMetrics(**metric) for metric in cached_data]
 
+    if is_a_stock_ticker(ticker):
+        financial_metrics = get_a_stock_financial_metrics(ticker, end_date, period=period, limit=limit)
+        if financial_metrics:
+            _cache.set_financial_metrics(cache_key, [m.model_dump() for m in financial_metrics])
+        return financial_metrics
+
     # If not in cache, fetch from API
     headers = {}
     financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
@@ -147,6 +168,9 @@ def search_line_items(
     api_key: str = None,
 ) -> list[LineItem]:
     """Fetch line items from API."""
+    if is_a_stock_ticker(ticker):
+        return get_a_stock_line_items(ticker, line_items, end_date, period=period, limit=limit)
+
     # If not in cache or insufficient data, fetch from API
     headers = {}
     financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
@@ -194,6 +218,12 @@ def get_insider_trades(
     # Check cache first - simple exact match
     if cached_data := _cache.get_insider_trades(cache_key):
         return [InsiderTrade(**trade) for trade in cached_data]
+
+    if is_a_stock_ticker(ticker):
+        insider_trades = get_a_stock_insider_trades(ticker, end_date, start_date=start_date, limit=limit)
+        if insider_trades:
+            _cache.set_insider_trades(cache_key, [trade.model_dump() for trade in insider_trades])
+        return insider_trades
 
     # If not in cache, fetch from API
     headers = {}
@@ -261,6 +291,12 @@ def get_company_news(
     if cached_data := _cache.get_company_news(cache_key):
         return [CompanyNews(**news) for news in cached_data]
 
+    if is_a_stock_ticker(ticker):
+        company_news = get_a_stock_company_news(ticker, end_date, start_date=start_date, limit=limit)
+        if company_news:
+            _cache.set_company_news(cache_key, [news.model_dump() for news in company_news])
+        return company_news
+
     # If not in cache, fetch from API
     headers = {}
     financial_api_key = api_key or os.environ.get("FINANCIAL_DATASETS_API_KEY")
@@ -318,6 +354,9 @@ def get_market_cap(
     api_key: str = None,
 ) -> float | None:
     """Fetch market cap from the API."""
+    if is_a_stock_ticker(ticker):
+        return get_a_stock_market_cap(ticker, end_date)
+
     # Check if end_date is today
     if end_date == datetime.datetime.now().strftime("%Y-%m-%d"):
         # Get the market cap from company facts API

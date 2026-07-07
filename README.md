@@ -108,6 +108,17 @@ poetry install
 poetry run python src/main.py --ticker AAPL,MSFT,NVDA
 ```
 
+#### A-share and China ETF data
+
+This fork can route China A-share stocks and onshore ETFs through the local `a-stock-data` style provider instead of Financial Datasets. Supported ticker formats:
+
+```bash
+poetry run python src/main.py --ticker 600519,510300,159915
+poetry run python src/main.py --ticker 600519.SH,510300.SH,159915.SZ
+```
+
+The China provider currently uses Tencent for daily K-lines, real-time price, PE/PB, and market cap, and Eastmoney for company news. For onshore China ETFs, price and market cap remain ETF-level fields, while valuation ratios use the mapped tracking index when available, for example `510300 -> CSI 300`, `159915 -> ChiNext Index`, and `588000 -> STAR 50`. Fields that do not map cleanly to free A-share endpoints, such as US-style insider trades or detailed GAAP line items, are returned as empty or `None` so existing agents can degrade gracefully. US tickers still use the original Financial Datasets API path.
+
 You can also specify a `--ollama` flag to run the AI hedge fund using local LLMs.
 
 ```bash
@@ -123,6 +134,13 @@ poetry run python src/main.py --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --
 #### Run the Backtester
 ```bash
 poetry run python src/backtester.py --ticker AAPL,MSFT,NVDA
+```
+
+For A-share and China ETF backtests, the benchmark defaults to `510300` when all tickers are China tickers. Override it explicitly when needed:
+
+```bash
+poetry run python src/backtester.py --ticker 510300,159915 --benchmark-ticker 510300
+poetry run python src/backtester.py --ticker 600519,000858 --benchmark-ticker 000300.SH
 ```
 
 **Example Output:**

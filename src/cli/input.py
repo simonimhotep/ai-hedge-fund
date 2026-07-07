@@ -221,6 +221,7 @@ class CLIInputs:
     end_date: str
     initial_cash: float
     margin_requirement: float
+    benchmark_ticker: str | None = None
     show_reasoning: bool = False
     show_agent_graph: bool = False
     raw_args: Optional[argparse.Namespace] = None
@@ -256,6 +257,13 @@ def parse_cli_inputs(
         default=0.0,
         help="Initial margin requirement ratio for shorts (e.g., 0.5 for 50%%). Defaults to 0.0",
     )
+    parser.add_argument(
+        "--benchmark-ticker",
+        dest="benchmark_ticker",
+        type=str,
+        default=None,
+        help="Benchmark ticker for backtests. Defaults to 510300 for all A-share/China ETF runs, otherwise SPY.",
+    )
 
     if include_reasoning_flag:
         parser.add_argument("--show-reasoning", action="store_true", help="Show reasoning from each agent")
@@ -282,6 +290,7 @@ def parse_cli_inputs(
         end_date=end_date,
         initial_cash=getattr(args, "initial_cash", 100000.0),
         margin_requirement=getattr(args, "margin_requirement", 0.0),
+        benchmark_ticker=getattr(args, "benchmark_ticker", None),
         show_reasoning=getattr(args, "show_reasoning", False),
         show_agent_graph=getattr(args, "show_agent_graph", False),
         raw_args=args,
